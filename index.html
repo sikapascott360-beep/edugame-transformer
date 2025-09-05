@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EduGame Transformer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-parse@1.1.1/lib/pdf-parse.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.0.3/dist/docx-preview.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f9ff;
+      color: #1e3a8a;
+    }
+
+    .game-card {
+      transition: all 0.3s ease;
+    }
+
+    .game-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    #chessCanvas,
+    #flappyCanvas,
+    #horrorCanvas {
+      border-radius: 8px;
+    }
+
+    .input-label {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .input-label input {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .game-canvas-container {
+      position: relative;
+    }
+
+    .game-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-weight: bold;
+      border-radius: 8px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="text-center mb-12">
+      <div class="flex justify-center mb-6">
+        <img
+          src="https://placehold.co/200x100"
+          alt="EduGame Transformer logo with books transforming into game controllers"
+          class="h-24"
+        />
+      </div>
+      <h1 class="text-4xl font-bold mb-4 text-indigo-900">EduGame Transformer</h1>
+      <p class="text-lg text-indigo-700 max-w-3xl mx-auto">
+        Turn your study materials into fun interactive games! Upload PDF, Word, or text files and learn through engaging gameplay.
+      </p>
+    </header>
+
+    <main>
+      <!-- File Upload Section -->
+      <section class="bg-white rounded-xl shadow-lg p-6 mb-12 max-w-3xl mx-auto">
+        <h2 class="text-2xl font-semibold mb-4 text-indigo-800">Upload Your Study Materials</h2>
+        <p class="mb-6 text-indigo-700">
+          Upload your PDF, Word (.docx), or text (.txt) file to transform it into an educational game.
+        </p>
+
+        <div
+          class="input-label bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center cursor-pointer mb-4"
+          id="dropZone"
+        >
+          <img
+            src="https://placehold.co/100x100"
+            alt="Upload icon with arrow pointing upward"
+            class="w-16 h-16 mx-auto mb-4 opacity-70"
+          />
+          <p class="text-lg font-medium mb-2">Drag & drop your file here</p>
+          <p class="text-sm text-indigo-500 mb-2">or</p>
+          <div
+            class="bg-indigo-600 text-white rounded-lg py-2 px-6 inline-block hover:bg-indigo-700 transition-colors browse-button"
+            id="browseButton"
+          >
+            Browse Files
+          </div>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt" class="hidden" />
+        </div>
+
+        <div
+          id="fileInfo"
+          class="hidden bg-indigo-100 rounded-lg p-4 mb-4 flex items-center"
+        >
+          <img
+            src="https://placehold.co/40x40"
+            alt="Document icon showing uploaded file"
+            class="w-10 h-10 mr-3"
+          />
+          <div>
+            <div class="font-medium" id="fileName"></div>
+            <div class="text-sm text-indigo-600" id="fileSize"></div>
+          </div>
+          <button id="removeFile" class="ml-auto text-red-600 hover:text-red-800">×</button>
+        </div>
+
+        <div id="extractedTextContainer" class="hidden mt-6">
+          <h3 class="text-xl font-semibold mb-3 text-indigo-800">Extracted Text Preview</h3>
+          <div
+            id="extractedText"
+            class="bg-gray-50 p-4 rounded-lg max-h-60 overflow-y-auto text-sm"
+          ></div>
+          <button
+            id="processText"
+            class="mt-4 bg-indigo-600 text-white rounded-lg py-2 px-6 hover:bg-indigo-700 transition-colors"
+          >
+            Create Games from Text
+          </button>
+        </div>
+      </section>
+
+      <!-- Game Selection Section -->
+      <section id="gameSelection" class="hidden mb-12">
+        <h2 class="text-2xl font-semibold mb-8 text-center text-indigo-900">
+          Choose Your Learning Adventure
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Chess Game Card -->
+          <div class="game-card bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="relative">
+              <img
+                src="https://placehold.co/600x300"
+                alt="Digital chessboard with education-themed pieces"
+                class="w-full h-48 object-cover"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <h3 class="absolute bottom-0 left-0 text-white text-xl font-bold p-4">
+                Knowledge Chess
+              </h3>
+            </div>
+            <div class="p-6">
+              <p class="text-gray-600 mb-4">
+                Answer questions correctly to move chess pieces strategically across the board.
+              </p>
+              <button
+                data-game="chess"
+                class="game-btn w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Play Chess
+              </button>
+            </div>
+          </div>
+
+          <!-- Flappy Bird Game Card -->
+          <div class="game-card bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="relative">
+              <img
+                src="https://placehold.co/600x300"
+                alt="Cartoon bird flying through obstacles with math equations"
+                class="w-full h-48 object-cover"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <h3 class="absolute bottom-0 left-0 text-white text-xl font-bold p-4">
+                Fly & Learn
+              </h3>
+            </div>
+            <div class="p-6">
+              <p class="text-gray-600 mb-4">
+                Keep your bird flying by answering questions quickly and correctly.
+              </p>
+              <button
+                data-game="flappy"
+                class="game-btn w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Play Flappy
+              </button>
+            </div>
+          </div>
+
+          <!-- Horror Game Card -->
+          <div class="game-card bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="relative">
+              <img
+                src="https://placehold.co/600x300"
+                alt="Dark corridor with monster silhouette and question marks"
+                class="w-full h-48 object-cover"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <h3 class="absolute bottom-0 left-0 text-white text-xl font-bold p-4">
+                Escape the Monster
+              </h3>
+            </div>
+            <div class="p-6">
+              <p class="text-gray-600 mb-4">
+                Answer questions to outsmart the monster and escape to safety.
+              </p>
+              <button
+                data-game="horror"
+                class="game-btn w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Play Horror
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game Canvas Section -->
+      <section id="gameCanvasSection" class="hidden mb-12 max-w-4xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 id="gameTitle" class="text-2xl font-semibold text-indigo-800"></h2>
+            <div>
+              <span class="text-sm text-gray-600 mr-2">Score:</span>
+              <span id="score" class="text-lg font-bold text-indigo-600">0</span>
+            </div>
+          </div>
+          <div class="game-canvas-container relative">
+            <canvas
+              id="chessCanvas"
+              width="600"
+              height="600"
+              class="hidden border mx-auto"
+            ></canvas>
+            <canvas
+              id="flappyCanvas"
+              width="600"
+              height="400"
+              class="hidden border mx-auto"
+            ></canvas>
+            <canvas
+              id="horrorCanvas"
+              width="600"
+              height="400"
+              class="hidden border mx-auto"
+            ></canvas>
+            <div id="questionOverlay" class="hidden game-overlay">
+              <div
+                class="text-center p-6 bg-white rounded-lg mx-4 max-w-sm"
+              >
+                <p id="questionText" class="text-lg mb-4 text-indigo-800"></p>
+                <div id="answerOptions" class="space-y-2"></div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-6">
+            <button
+              id="backToGames"
+              class="bg-gray-600 text-white rounded-lg py-2 px-6 hover:bg-gray-700 transition-colors"
+            >
+              Back to Game Selection
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="text-center mt-12 text-indigo-600">
+      <p>© 2023 EduGame Transformer. Hosted on GitHub Pages.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Global variables
+    let extractedText = '';
+    let questions = [];
+    let currentGame = '';
+    let score = 0;
+    let gameState = {};
+
+    // DOM elements
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const extractedTextContainer = document.getElementById('extractedTextContainer');
+    const extractedTextDiv = document.getElementById('extractedText');
+    const processText = document.getElementById('processText');
+    const gameSelection = document.getElementById('gameSelection');
+    const gameCanvasSection = document.getElementById('gameCanvasSection');
+    const questionOverlay = document.getElementById('questionOverlay');
+    const questionText = document.getElementById('questionText');
+    const answerOptions = document.getElementById('answerOptions');
+    const scoreDisplay = document.getElementById('score');
+    const gameTitle = document.getElementById('gameTitle');
+    const backToGames = document.getElementById('backToGames');
+    const browseButton = document.getElementById('browseButton');
+    const dropZone = document.getElementById('dropZone');
+
+    // Click to open file input
+    browseButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Drag and drop functionality
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#4f46e5';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#c7d2fe';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#c7d2fe';
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelection(files[0]);
+      }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files.length > 0) {
+        handleFileSelection(files[0]);
+      }
+    });
+
+    // Handle file selection
+    function handleFileSelection(file) {
+      const validTypes = [
+        'text/plain',
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (
+        !validTypes.includes(file.type) &&
+        !file.name.endsWith('.txt') &&
+        !file.name.endsWith('.pdf') &&
+        !file.name.endsWith('.docx')
+      ) {
+        alert('Please select a valid file type: PDF, Word (.docx), or Text (.txt)');
+        return;
+      }
+
+      fileName.textContent = file.name;
+      fileSize.textContent = `${(file.size / 1024).toFixed(2)} KB`;
+      fileInfo.classList.remove('hidden');
+
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        const result = e.target.result;
+        if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+          extractedText = result;
+        } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          extractedText = await extractTextFromPDF(result);
+        } else if (
+          file.type ===
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          file.name.endsWith('.docx')
+        ) {
+          extractedText = await extractTextFromDocx(result);
+        }
+        displayExtractedText();
+      };
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        reader.readAsArrayBuffer(file);
+      } else if (
+        file.type ===
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.name.endsWith('.docx')
+      ) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
+    }
+
+    // Extract text from PDF
+    async function extractTextFromPDF(arrayBuffer) {
+      try {
+        const data = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = '';
+        for (let i = 1; i <= data.numPages; i++) {
+          const page = await data.getPage(i);
+          const textContent = await page.getTextContent();
+          text += textContent.items.map((item) => item.str).join(' ');
+        }
+        return text;
+      } catch (error) {
+        console.error('Error extracting PDF text:', error);
+        return 'Error extracting text from PDF';
+      }
+    }
+
+    // Extract text from DocX
+    async function extractTextFromDocx(arrayBuffer) {
+      try {
+        // Note: docx-preview might need adjustment for text extraction
+        const elements = await docx.renderAsync(arrayBuffer, document.createElement('div'));
+        return elements.textContent || 'Error extracting text from Word document';
+      } catch (error) {
+        console.error('Error extracting DocX text:', error);
+        return 'Error extracting text from Word document';
+      }
+    }
+
+    // Display extracted text
+    function displayExtractedText() {
+      extractedTextDiv.textContent = extractedText;
+      extractedTextContainer.classList.remove('hidden');
+    }
+
+    // Remove file
+    removeFile.addEventListener('click', () => {
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+      extractedTextContainer.classList.add('hidden');
+      extractedText = '';
+      questions = [];
+    });
+
+    // Process text to create questions
+    processText.addEventListener('click', () => {
+      if (!extractedText) return;
+
+      questions = generateQuestions(extractedText);
+      gameSelection.classList.remove('hidden');
+    });
+
+    // Generate questions from text
+    function generateQuestions(text) {
+      const sentences = text.split('.');
+      const questions = [];
+      for (let i = 0; i < Math.min(sentences.length - 1, 10); i++) {
+        if (sentences[i].length > 10) {
+          questions.push({
+            question: `What does this statement mean? "${sentences[i].trim()}"`,
+            options: ['Option A', 'Option B', 'Option C', 'Option D'],
+            correct: Math.floor(Math.random() * 4),
+          });
+        }
+      }
+      return questions;
+    }
+
+    // Game selection
+    document.querySelectorAll('.game-btn').forEach((button) => {
+      button.addEventListener('click', (e) => {
+        currentGame = e.target.dataset.game;
+        startGame(currentGame);
+      });
+    });
+
+    // Start game
+    function startGame(gameType) {
+      gameSelection.classList.add('hidden');
+      gameCanvasSection.classList.remove('hidden');
+      score = 0;
+      scoreDisplay.textContent = score;
+
+      switch (gameType) {
+        case 'chess':
+          gameTitle.textContent = 'Knowledge Chess';
+          document.getElementById('chessCanvas').classList.remove('hidden');
+          initChessGame();
+          break;
+        case 'flappy':
+          gameTitle.textContent = 'Fly & Learn';
+          document.getElementById('flappyCanvas').classList.remove('hidden');
+          initFlappyGame();
+          break;
+        case 'horror':
+          gameTitle.text
