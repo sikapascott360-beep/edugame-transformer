@@ -1,3 +1,0 @@
-document.querySelector('.input-label div.bg-indigo-600').addEventListener('click', () => {
-    document.getElementById('fileInput').click();
-});
